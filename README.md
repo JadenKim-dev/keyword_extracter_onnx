@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Keyword Extraction Model - ONNX Converter
 
-## Getting Started
+PyTorch 기반 키워드 추출 모델을 ONNX 포맷으로 변환하는 프로젝트입니다.
 
-First, run the development server:
+## Prerequisites
+
+- Python 3.8+
+- uv (Python package manager)
+
+## Installation
+
+프로젝트 의존성 설치:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+uv sync
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+테스트 의존성 포함 설치:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+uv sync --extra dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Usage
 
-## Learn More
+### 1. Load Base Model
 
-To learn more about Next.js, take a look at the following resources:
+DistilBERT 베이스 모델을 로드합니다:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+uv run python -m scripts.1_load_model
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. Adapt Model
 
-## Deploy on Vercel
+키워드 추출을 위한 모델 아키텍처를 적용합니다:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+uv run python -m scripts.2_adapt_model
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+적용된 모델은 `models/pytorch/keyword_model/` 디렉토리에 저장됩니다.
+
+## Testing
+
+### Run Tests
+
+전체 테스트 실행:
+
+```bash
+uv run pytest
+```
+
+특정 테스트 실행:
+
+```bash
+uv run pytest tests/test_adapted_model.py::TestStructuralValidation
+```
+
+## Project Structure
+
+```
+.
+├── scripts/
+│   ├── 1_load_model.py      # 베이스 모델 로드
+│   └── 2_adapt_model.py     # 모델 아키텍처 적용
+├── tests/
+│   ├── conftest.py          # Pytest fixtures
+│   └── test_adapted_model.py # 모델 검증 테스트
+├── models/
+│   └── pytorch/
+│       └── keyword_model/   # 적용된 모델 저장 위치
+└── pyproject.toml          # 프로젝트 설정
+```
+
+## Development Workflow
+
+1. 베이스 모델 로드: `uv run python -m scripts.1_load_model`
+2. 모델 적용: `uv run python -m scripts.2_adapt_model`
+3. 테스트 실행: `pytest tests/ -v`
+4. ONNX 변환 (Task 3 - 예정)
