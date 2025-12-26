@@ -20,7 +20,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 
-from scripts.utils.display import kv_block, log, fmt_millions
+from scripts.utils.display import print_kv_block, log, fmt_millions
 
 MODEL_NAME = "dslim/distilbert-NER"
 CACHE_DIR = "./models/pytorch/base_ner"
@@ -102,7 +102,7 @@ def adapt_model(*, verbose: bool = False, force: bool = False):
     base_model.config.id2label = NEW_LABELS
     base_model.config.label2id = {v: k for k, v in NEW_LABELS.items()}
 
-    kv_block("Adaptation", {
+    print_kv_block("Adaptation", {
         "Method": "Classification head replacement",
         "New labels": f"{num_labels} (O, B-KEY, I-KEY)",
         "Initialization": "Xavier uniform",
@@ -143,7 +143,7 @@ def adapt_model(*, verbose: bool = False, force: bool = False):
 
     saved_files = [f for f in os.listdir(OUTPUT_DIR) if os.path.isfile(os.path.join(OUTPUT_DIR, f))]
 
-    kv_block("Output", {
+    print_kv_block("Output", {
         "Directory": OUTPUT_DIR,
         "Files saved": f"{len(saved_files)} (config, model, tokenizer, metadata)",
         "Total size": f"{model_size_mb:.1f} MB",

@@ -7,7 +7,7 @@ logging, and displaying model/tokenizer information.
 """
 
 
-def kv_block(title: str, data: dict) -> None:
+def print_kv_block(title: str, data: dict) -> None:
     """
     Print a formatted key-value block.
 

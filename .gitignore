@@ -44,8 +44,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# ONNX models (large files)
-public/models/*.onnx
+# Generated models and tokenizers (regenerate with scripts/3_convert_to_onnx.py)
+public/models/
 
 # Python
 .venv/

@@ -14,7 +14,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 
 from scripts.utils.display import (
-    kv_block,
+    print_kv_block,
     log,
     fmt_millions,
     print_label_mapping,
@@ -40,7 +40,7 @@ def load_and_inspect(*, verbose: bool = False, run_infer: bool = True):
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     # Summary blocks (default-visible)
-    kv_block("Model", {
+    print_kv_block("Model", {
         "Architecture": config.architectures[0],
         "Num labels": config.num_labels,
         "Hidden size": config.hidden_size,
@@ -50,7 +50,7 @@ def load_and_inspect(*, verbose: bool = False, run_infer: bool = True):
         "Trainable": fmt_millions(trainable_params),
     })
 
-    kv_block("Tokenizer", {
+    print_kv_block("Tokenizer", {
         "Vocab size": len(tokenizer),
         "Max length": tokenizer.model_max_length,
         "Special tokens": ", ".join(tokenizer.special_tokens_map.keys()),
