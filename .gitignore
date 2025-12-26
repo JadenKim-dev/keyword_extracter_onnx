@@ -56,6 +56,12 @@ __pycache__/
 .ipynb_checkpoints/
 # uv.lock  # Uncomment to ignore lock file (not recommended - lock files ensure reproducible builds)
 
+# pytest
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+
 # Model artifacts
 models/pytorch/
 models/onnx/

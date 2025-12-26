@@ -13,8 +13,6 @@ import argparse
 import torch
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 
-# Add project root to Python path
-
 from scripts.utils.display import (
     kv_block,
     log,
@@ -43,7 +41,7 @@ def load_and_inspect(*, verbose: bool = False, run_infer: bool = True):
 
     # Summary blocks (default-visible)
     kv_block("Model", {
-        "Architecture": (config.architectures[0] if config.architectures else type(model).__name__),
+        "Architecture": config.architectures[0],
         "Num labels": config.num_labels,
         "Hidden size": config.hidden_size,
         "Layers": config.num_hidden_layers,
