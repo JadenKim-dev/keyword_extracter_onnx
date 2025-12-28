@@ -31,7 +31,7 @@ from scripts.utils.display import print_kv_block, log, fmt_millions
 # Directory paths
 PYTORCH_MODEL_DIR = "./models/pytorch/keyword_model"
 ONNX_OUTPUT_DIR = "./models/onnx"
-PUBLIC_MODELS_DIR = "./public/models"
+PUBLIC_MODELS_DIR = "./public/models/keyword_model"
 
 # Model names
 FP32_MODEL_NAME = "keyword_model_fp32.onnx"
