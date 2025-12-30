@@ -59,9 +59,26 @@ uv run python -m scripts.3_convert_to_onnx
 - `models/onnx/keyword_model_int8.onnx` (62.6 MB) - CPU/WASM용
 - `public/models/` 디렉토리에 자동 복사 (Next.js 배포용)
 
+### 4. Validate Tokenizer
+
+Python transformers와 브라우저 토크나이저 출력을 비교 검증합니다:
+
+```bash
+uv run python -m scripts.4_validate_tokenizer --verbose
+```
+
+검증 옵션:
+- `--verbose`, `-v`: 상세 출력
+- `--filter`: 특정 카테고리만 테스트 (basic, padding, truncation, edge_case)
+- `--test-name`: 특정 테스트만 실행
+
+검증 결과:
+- `tests/validation/tokenizer_validation_python.json` - Python 토크나이저 출력
+- 브라우저 비교: `node scripts/compare_tokenizer_outputs.mjs`
+
 ## Testing
 
-### Run Tests
+### Python Tests
 
 전체 테스트 실행:
 
@@ -76,6 +93,15 @@ uv run pytest tests/test_adapted_model.py::TestStructuralValidation
 uv run pytest tests/test_onnx_model.py -v
 ```
 
+### Browser Tokenizer Tests
+
+Vitest로 브라우저 토크나이저 테스트:
+
+```bash
+npm test                           # 전체 테스트
+npm test -- lib/__tests__/tokenizer.test.ts   # 토크나이저 테스트만
+```
+
 ## Project Structure
 
 ```
@@ -83,11 +109,17 @@ uv run pytest tests/test_onnx_model.py -v
 ├── scripts/
 │   ├── 1_load_model.py         # 베이스 모델 로드
 │   ├── 2_adapt_model.py        # 모델 아키텍처 적용
-│   └── 3_convert_to_onnx.py    # ONNX 변환 및 양자화
+│   ├── 3_convert_to_onnx.py    # ONNX 변환 및 양자화
+│   ├── 4_validate_tokenizer.py # 토크나이저 검증
+│   └── compare_tokenizer_outputs.mjs  # 브라우저 출력 비교
 ├── tests/
 │   ├── conftest.py             # Pytest fixtures
 │   ├── test_adapted_model.py   # 모델 검증 테스트
-│   └── test_onnx_model.py      # ONNX 모델 테스트
+│   ├── test_onnx_model.py      # ONNX 모델 테스트
+│   └── validation/             # 토크나이저 검증 결과
+│       └── tokenizer_validation_python.json
+├── lib/__tests__/
+│   └── tokenizer.test.ts       # 브라우저 토크나이저 테스트
 ├── models/
 │   ├── pytorch/
 │   │   └── keyword_model/      # 적용된 PyTorch 모델
@@ -106,6 +138,8 @@ uv run pytest tests/test_onnx_model.py -v
 3. 테스트 실행: `uv run pytest tests/test_adapted_model.py -v`
 4. ONNX 변환: `uv run python -m scripts.3_convert_to_onnx --force`
 5. ONNX 테스트: `uv run pytest tests/test_onnx_model.py -v`
+6. 토크나이저 검증: `uv run python -m scripts.4_validate_tokenizer --verbose`
+7. 브라우저 테스트: `npm test`
 
 ## Features
 
@@ -115,6 +149,8 @@ uv run pytest tests/test_onnx_model.py -v
 - ✅ INT8 동적 양자화 (74.9% 크기 감소)
 - ✅ PyTorch vs ONNX 출력 검증
 - ✅ 포괄적인 테스트 스위트
-- 🔄 브라우저 기반 추론 엔진 (Task 4-5)
+- ✅ 브라우저 토크나이저 구현 (DistilBERT)
+- ✅ Python vs 브라우저 토크나이저 검증 (100% 일치)
+- 🔄 ONNX Runtime Web 추론 엔진 (Task 5)
 - 🔄 키워드 후처리 파이프라인 (Task 6)
 - 🔄 Next.js UI 컴포넌트 (Task 7)

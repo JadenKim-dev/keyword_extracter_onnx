@@ -80,3 +80,5 @@ models/onnx/
 .taskmaster
 .mcp.json
 CLAUDE.md
+
+tests/validation/
