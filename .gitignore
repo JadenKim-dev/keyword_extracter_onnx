@@ -44,7 +44,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Generated models and tokenizers (regenerate with scripts/3_convert_to_onnx.py)
+# Generated models and tokenizers (regenerate with scripts/2_convert_to_onnx.py)
 public/models/
 
 # Python

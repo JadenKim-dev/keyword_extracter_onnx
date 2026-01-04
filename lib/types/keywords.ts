@@ -5,15 +5,18 @@
 /**
  * BIO tagging labels for token classification
  *
- * Based on config.json label mapping:
- * - 0: "O" (Outside - non-keyword)
- * - 1: "B-KEY" (Begin-keyword)
- * - 2: "I-KEY" (Inside-keyword)
+ * Based on ml6team/keyphrase-extraction-distilbert-inspec config.json:
+ * - 0: "B-KEY" (Begin-keyword)
+ * - 1: "I-KEY" (Inside-keyword)
+ * - 2: "O" (Outside - non-keyword)
+ *
+ * NOTE: Label order changed from previous adapted model which used:
+ * {0: "O", 1: "B-KEY", 2: "I-KEY"}
  */
 export enum BIOLabel {
-  O = 0,      // Outside (non-keyword)
-  B_KEY = 1,  // Begin-keyword
-  I_KEY = 2,  // Inside-keyword
+  B_KEY = 0,  // Begin-keyword (was 1 in old model)
+  I_KEY = 1,  // Inside-keyword (was 2 in old model)
+  O = 2,      // Outside (was 0 in old model)
 }
 
 /**

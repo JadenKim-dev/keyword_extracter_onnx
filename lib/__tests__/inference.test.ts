@@ -102,35 +102,10 @@ describe('OnnxInferenceSession', () => {
       expect(inference.isReady()).toBe(true);
     });
 
-    it('should return metadata with all required fields', () => {
-      const metadata = inference.getMetadata();
-
-      expect(metadata).not.toBeNull();
-      expect(metadata!.modelVariant).toBe('int8'); // We warmup with INT8
-      expect(metadata!.modelPath).toContain('keyword_model');
-      expect(metadata!.modelSizeMB).toBeGreaterThan(0);
-      expect(metadata!.inputNames).toEqual(['input_ids', 'attention_mask']);
-      expect(metadata!.outputNames).toEqual(['logits']);
-      
-      // Validate execution provider
-      expect(['webgpu', 'webgl', 'wasm']).toContain(metadata!.executionProvider);
-    });
-
     it('should handle concurrent warmup calls without duplicate loading', async () => {
       const promises = [inference.warmup(), inference.warmup(), inference.warmup()];
       await Promise.all(promises);
       expect(inference.isReady()).toBe(true);
-    });
-
-    it('should have loaded model using mocked fetch', () => {
-      const metadata = inference.getMetadata();
-
-      expect(metadata).not.toBeNull();
-      expect(metadata!.modelSizeMB).toBeGreaterThan(0);
-
-      // Verify model was loaded correctly
-      expect(metadata!.inputNames).toEqual(['input_ids', 'attention_mask']);
-      expect(metadata!.outputNames).toEqual(['logits']);
     });
   });
 

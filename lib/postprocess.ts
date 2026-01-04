@@ -3,6 +3,11 @@
  *
  * Converts raw BIO-tagged logits into structured keyword results with
  * proper text reconstruction and filtering.
+ *
+ * Label mapping (ml6team/keyphrase-extraction-distilbert-inspec):
+ * - 0: "B-KEY" (Begin-keyword)
+ * - 1: "I-KEY" (Inside-keyword)
+ * - 2: "O" (Outside - non-keyword)
  */
 
 import type { InferenceOutput } from './types/inference';

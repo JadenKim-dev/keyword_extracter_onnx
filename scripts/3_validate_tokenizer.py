@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Script 4: Validate Tokenizer Consistency with Browser Implementation
+Script 3: Validate Tokenizer Consistency with Browser Implementation
 
 Compares Python transformers tokenizer outputs with browser tokenization
 to ensure numerical equivalence.
 
 Usage:
-    uv run python -m scripts.4_validate_tokenizer
-    uv run python -m scripts.4_validate_tokenizer --verbose
-    uv run python -m scripts.4_validate_tokenizer --filter basic
-    uv run python -m scripts.4_validate_tokenizer --test-name simple_text
+    uv run python -m scripts.3_validate_tokenizer
+    uv run python -m scripts.3_validate_tokenizer --verbose
+    uv run python -m scripts.3_validate_tokenizer --filter basic
+    uv run python -m scripts.3_validate_tokenizer --test-name simple_text
 """
 
 import os
@@ -351,19 +351,19 @@ def main():
         epilog="""
 Examples:
   # Run all tests
-  uv run python -m scripts.4_validate_tokenizer
+  uv run python -m scripts.3_validate_tokenizer
 
   # Run with verbose output
-  uv run python -m scripts.4_validate_tokenizer --verbose
+  uv run python -m scripts.3_validate_tokenizer --verbose
 
   # Run only edge case tests
-  uv run python -m scripts.4_validate_tokenizer --filter edge_case
+  uv run python -m scripts.3_validate_tokenizer --filter edge_case
 
   # Run single test
-  uv run python -m scripts.4_validate_tokenizer --test-name simple_text
+  uv run python -m scripts.3_validate_tokenizer --test-name simple_text
 
   # Custom output file
-  uv run python -m scripts.4_validate_tokenizer --output my_results.json
+  uv run python -m scripts.3_validate_tokenizer --output my_results.json
         """
     )
 

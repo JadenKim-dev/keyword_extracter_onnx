@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Script 3: Convert PyTorch Model to ONNX Format with Optimization
+Script 2: Convert PyTorch Model to ONNX Format with Optimization
 
-This script converts the adapted keyword extraction model to ONNX format
+Converts the ml6team/keyphrase-extraction-distilbert-inspec model to ONNX format
 with both FP32 and INT8 quantized versions for browser deployment.
 
 Usage:
-    uv run python -m scripts.3_convert_to_onnx
-    uv run python -m scripts.3_convert_to_onnx --verbose
-    uv run python -m scripts.3_convert_to_onnx --force
-    uv run python -m scripts.3_convert_to_onnx --skip-quantization
+    uv run python -m scripts.2_convert_to_onnx
+    uv run python -m scripts.2_convert_to_onnx --verbose
+    uv run python -m scripts.2_convert_to_onnx --force
+    uv run python -m scripts.2_convert_to_onnx --skip-quantization
 """
 
 import os
@@ -45,7 +45,7 @@ def check_prerequisites(verbose=False):
     if not os.path.exists(PYTORCH_MODEL_DIR):
         raise FileNotFoundError(
             f"PyTorch model not found at {PYTORCH_MODEL_DIR}.\n"
-            f"Run 'uv run python -m scripts.2_adapt_model' first."
+            f"Run 'uv run python -m scripts.1_load_model' first."
         )
 
     required_files = ["config.json", "model.safetensors", "tokenizer.json"]

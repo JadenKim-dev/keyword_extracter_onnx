@@ -18,8 +18,50 @@ import torch
 
 # Directory paths
 ONNX_DIR = "./models/onnx"
-PUBLIC_DIR = "./public/models"
+PUBLIC_DIR = "./public/models/keyword_model"
 PYTORCH_DIR = "./models/pytorch/keyword_model"
+
+
+@pytest.fixture(scope="module")
+def tokenizer():
+    """Load tokenizer once for entire test module."""
+    return AutoTokenizer.from_pretrained(PYTORCH_DIR)
+
+
+@pytest.fixture(scope="module")
+def pytorch_model():
+    """Load PyTorch model once for entire test module."""
+    model = AutoModelForTokenClassification.from_pretrained(PYTORCH_DIR)
+    model.eval()
+    return model
+
+
+@pytest.fixture(scope="module")
+def fp32_session():
+    """Load FP32 ONNX session once for entire test module."""
+    fp32_path = os.path.join(ONNX_DIR, "keyword_model_fp32.onnx")
+    return ort.InferenceSession(fp32_path)
+
+
+@pytest.fixture(scope="module")
+def int8_session():
+    """Load INT8 ONNX session once for entire test module."""
+    int8_path = os.path.join(ONNX_DIR, "keyword_model_int8.onnx")
+    return ort.InferenceSession(int8_path)
+
+
+@pytest.fixture(scope="module")
+def public_fp32_session():
+    """Load public FP32 ONNX session for web deployment testing."""
+    fp32_path = os.path.join(PUBLIC_DIR, "keyword_model_fp32.onnx")
+    return ort.InferenceSession(fp32_path)
+
+
+@pytest.fixture(scope="module")
+def public_int8_session():
+    """Load public INT8 ONNX session for web deployment testing."""
+    int8_path = os.path.join(PUBLIC_DIR, "keyword_model_int8.onnx")
+    return ort.InferenceSession(int8_path)
 
 
 class TestONNXConversion:
@@ -76,23 +118,6 @@ class TestONNXConversion:
 class TestONNXOutputShape:
     """Test ONNX model output shapes and structure."""
 
-    @pytest.fixture(scope="class")
-    def fp32_session(self):
-        """Load FP32 ONNX session once for all tests."""
-        fp32_path = os.path.join(ONNX_DIR, "keyword_model_fp32.onnx")
-        return ort.InferenceSession(fp32_path)
-
-    @pytest.fixture(scope="class")
-    def int8_session(self):
-        """Load INT8 ONNX session once for all tests."""
-        int8_path = os.path.join(ONNX_DIR, "keyword_model_int8.onnx")
-        return ort.InferenceSession(int8_path)
-
-    @pytest.fixture(scope="class")
-    def tokenizer(self):
-        """Load tokenizer once for all tests."""
-        return AutoTokenizer.from_pretrained(PYTORCH_DIR)
-
     @pytest.mark.parametrize("model_type", ["fp32", "int8"])
     def test_output_shape(self, model_type, tokenizer, request):
         """Test ONNX model output shape for both FP32 and INT8."""
@@ -138,24 +163,6 @@ class TestONNXOutputShape:
 class TestONNXNumericalAccuracy:
     """Test ONNX model numerical accuracy against PyTorch."""
 
-    @pytest.fixture(scope="class")
-    def pytorch_model(self):
-        """Load PyTorch model once for all tests."""
-        model = AutoModelForTokenClassification.from_pretrained(PYTORCH_DIR)
-        model.eval()
-        return model
-
-    @pytest.fixture(scope="class")
-    def tokenizer(self):
-        """Load tokenizer once for all tests."""
-        return AutoTokenizer.from_pretrained(PYTORCH_DIR)
-
-    @pytest.fixture(scope="class")
-    def fp32_session(self):
-        """Load FP32 ONNX session once for all tests."""
-        fp32_path = os.path.join(ONNX_DIR, "keyword_model_fp32.onnx")
-        return ort.InferenceSession(fp32_path)
-
     def test_fp32_numerical_equivalence(self, pytorch_model, fp32_session: ort.InferenceSession, tokenizer):
         """Test FP32 ONNX matches PyTorch output within tolerance."""
         test_text = "Machine learning and artificial intelligence are transforming technology"
@@ -194,6 +201,159 @@ class TestONNXNumericalAccuracy:
         logits = outputs[0]
         assert not np.isnan(logits).any(), "NaN values detected in outputs"
         assert not np.isinf(logits).any(), "Inf values detected in outputs"
+
+
+class TestBIOLabelPredictions:
+    """Test that ONNX model correctly predicts all BIO label types."""
+
+    def _get_predicted_labels(self, logits: np.ndarray) -> np.ndarray:
+        """
+        Extract predicted labels from logits using argmax.
+
+        Args:
+            logits: Shape [batch_size, seq_len, num_classes]
+
+        Returns:
+            predicted_labels: Shape [batch_size, seq_len] with values in [0, 1, 2]
+        """
+        return np.argmax(logits, axis=-1)
+
+    def _analyze_predictions(self, predicted_labels: np.ndarray, attention_mask: np.ndarray) -> dict:
+        """
+        Analyze predicted label distribution (excluding padding).
+
+        Returns:
+            Dictionary with label counts and percentages
+        """
+        # Filter out padding tokens (where attention_mask == 0)
+        valid_predictions = predicted_labels[attention_mask == 1]
+
+        counts = {
+            'O': np.sum(valid_predictions == 0),
+            'B_KEY': np.sum(valid_predictions == 1),
+            'I_KEY': np.sum(valid_predictions == 2),
+        }
+
+        total = len(valid_predictions)
+        percentages = {k: (v / total * 100) if total > 0 else 0 for k, v in counts.items()}
+
+        return {
+            'counts': counts,
+            'percentages': percentages,
+            'total_tokens': total
+        }
+
+    @pytest.mark.parametrize("model_type,session_fixture", [
+        ("fp32", "fp32_session"),
+        ("int8", "int8_session"),
+        ("public_fp32", "public_fp32_session"),
+        ("public_int8", "public_int8_session"),
+    ])
+    def test_all_bio_labels_present(self, model_type, session_fixture, tokenizer, request):
+        """
+        Test that model predicts all three BIO labels (O, B-KEY, I-KEY).
+
+        This is critical for proper keyword extraction. Without B-KEY labels,
+        the post-processing pipeline cannot identify keyword boundaries.
+        """
+        session = request.getfixturevalue(session_fixture)
+
+        # Use keyword-rich text that should trigger all label types
+        test_text = (
+            "Machine learning and artificial intelligence are transforming "
+            "natural language processing and computer vision technologies. "
+            "Deep learning models and neural networks enable advanced "
+            "data analysis and predictive analytics applications."
+        )
+
+        inputs = tokenizer(test_text, return_tensors="np", padding=True, truncation=True)
+
+        onnx_inputs = {
+            "input_ids": inputs["input_ids"],
+            "attention_mask": inputs["attention_mask"]
+        }
+        outputs = session.run(None, onnx_inputs)
+        logits = outputs[0]
+
+        # Get predicted labels
+        predicted_labels = self._get_predicted_labels(logits)
+
+        # Analyze predictions
+        analysis = self._analyze_predictions(predicted_labels, inputs["attention_mask"])
+
+        # Print detailed analysis for debugging
+        print(f"\n{model_type} Prediction Analysis:")
+        print(f"  Total valid tokens: {analysis['total_tokens']}")
+        print(f"  O (Outside):     {analysis['counts']['O']:3d} tokens ({analysis['percentages']['O']:5.1f}%)")
+        print(f"  B-KEY (Begin):   {analysis['counts']['B_KEY']:3d} tokens ({analysis['percentages']['B_KEY']:5.1f}%)")
+        print(f"  I-KEY (Inside):  {analysis['counts']['I_KEY']:3d} tokens ({analysis['percentages']['I_KEY']:5.1f}%)")
+
+        # Critical assertions
+        assert analysis['counts']['O'] > 0, (
+            f"{model_type}: No O (Outside) labels predicted! Model may be broken."
+        )
+        assert analysis['counts']['B_KEY'] > 0, (
+            f"{model_type}: No B-KEY labels predicted! This will break keyword extraction. "
+            f"Got {analysis['counts']['O']} O labels and {analysis['counts']['I_KEY']} I-KEY labels only."
+        )
+        assert analysis['counts']['I_KEY'] > 0, (
+            f"{model_type}: No I-KEY labels predicted! Model may not detect multi-token keywords."
+        )
+
+        # Sanity check: B-KEY should be less frequent than I-KEY (keywords span multiple tokens)
+        # This is a soft warning, not a hard failure
+        if analysis['counts']['B_KEY'] > analysis['counts']['I_KEY']:
+            print(f"  WARNING: More B-KEY than I-KEY labels - unusual pattern detected")
+
+    @pytest.mark.parametrize("model_type,session_fixture", [
+        ("fp32", "fp32_session"),
+        ("int8", "int8_session"),
+    ])
+    def test_bio_label_consistency_with_pytorch(self, model_type, session_fixture, tokenizer, pytorch_model, request):
+        """
+        Test that ONNX predictions match PyTorch label distribution.
+
+        This ensures the conversion didn't break the classification behavior.
+        """
+        session = request.getfixturevalue(session_fixture)
+
+        test_text = "Machine learning and deep learning enable artificial intelligence applications"
+
+        # PyTorch inference
+        inputs_pt = tokenizer(test_text, return_tensors="pt", padding=True, truncation=True)
+        with torch.no_grad():
+            pytorch_outputs = pytorch_model(**inputs_pt)
+            pytorch_logits = pytorch_outputs.logits.numpy()
+
+        pytorch_labels = self._get_predicted_labels(pytorch_logits)
+        pytorch_analysis = self._analyze_predictions(pytorch_labels, inputs_pt["attention_mask"].numpy())
+
+        # ONNX inference
+        inputs_onnx = tokenizer(test_text, return_tensors="np", padding=True, truncation=True)
+        onnx_inputs = {
+            "input_ids": inputs_onnx["input_ids"],
+            "attention_mask": inputs_onnx["attention_mask"]
+        }
+        onnx_logits = session.run(None, onnx_inputs)[0]
+        onnx_labels = self._get_predicted_labels(onnx_logits)
+        onnx_analysis = self._analyze_predictions(onnx_labels, inputs_onnx["attention_mask"])
+
+        print(f"\n{model_type} vs PyTorch Label Distribution:")
+        print(f"  PyTorch - O: {pytorch_analysis['counts']['O']}, B-KEY: {pytorch_analysis['counts']['B_KEY']}, I-KEY: {pytorch_analysis['counts']['I_KEY']}")
+        print(f"  ONNX    - O: {onnx_analysis['counts']['O']}, B-KEY: {onnx_analysis['counts']['B_KEY']}, I-KEY: {onnx_analysis['counts']['I_KEY']}")
+
+        # Check that predictions mostly match (allow small quantization differences for INT8)
+        tolerance = 0.1 if model_type == "int8" else 0.05  # 10% tolerance for INT8, 5% for FP32
+
+        for label in ['O', 'B_KEY', 'I_KEY']:
+            pytorch_pct = pytorch_analysis['percentages'][label]
+            onnx_pct = onnx_analysis['percentages'][label]
+            diff_pct = abs(pytorch_pct - onnx_pct)
+
+            assert diff_pct < (tolerance * 100), (
+                f"{model_type}: {label} label distribution differs too much. "
+                f"PyTorch: {pytorch_pct:.1f}%, ONNX: {onnx_pct:.1f}%, Diff: {diff_pct:.1f}%"
+            )
 
 
 class TestPublicModels:

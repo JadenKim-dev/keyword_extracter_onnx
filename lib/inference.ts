@@ -6,7 +6,6 @@ import type {
   InferenceInput,
   InferenceOutput,
   SessionOptions,
-  SessionMetadata,
 } from './types/inference';
 import { InferenceError, InferenceErrorCode } from './types/inference';
 
@@ -16,7 +15,7 @@ const MODEL_FILES: Record<ModelVariant, string> = {
   fp32: 'keyword_model_fp32.onnx',
   int8: 'keyword_model_int8.onnx',
 };
-const DEFAULT_EXECUTION_PROVIDERS: ExecutionProvider[] = ['webgpu', 'webgl', 'wasm'];
+const DEFAULT_EXECUTION_PROVIDERS: ExecutionProvider[] = ['webgpu', 'wasm'];
 const WARMUP_SEQUENCE_LENGTH = 128;
 const MAX_SEQUENCE_LENGTH = 512;
 
@@ -263,5 +262,5 @@ export const inference = new Proxy({} as OnnxInferenceSession, {
 });
 
 // Export types
-export type { InferenceInput, InferenceOutput, SessionMetadata, SessionOptions };
+export type { InferenceInput, InferenceOutput, SessionOptions };
 export { InferenceError, InferenceErrorCode };

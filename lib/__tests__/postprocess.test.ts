@@ -11,12 +11,12 @@ describe('BIO Token Predictions', () => {
   it('should convert logits to predictions correctly', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        // Token 0: Strong O prediction
-        3.0, 0.1, 0.1,
-        // Token 1: Strong B-KEY prediction
-        0.1, 3.0, 0.1,
-        // Token 2: Strong I-KEY prediction
+        // Token 0: Strong O prediction (position 2 in new mapping)
         0.1, 0.1, 3.0,
+        // Token 1: Strong B-KEY prediction (position 0 in new mapping)
+        3.0, 0.1, 0.1,
+        // Token 2: Strong I-KEY prediction (position 1 in new mapping)
+        0.1, 3.0, 0.1,
       ]),
       shape: [1, 3, 3],
     };
@@ -49,8 +49,8 @@ describe('WordPiece Reconstruction', () => {
   it('should handle simple words without subwords', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY
-        0.1, 0.1, 3.0,  // I-KEY
+        3.0, 0.1, 0.1,  // B-KEY
+        0.1, 3.0, 0.1,  // I-KEY
       ]),
       shape: [1, 2, 3],
     };
@@ -73,8 +73,8 @@ describe('WordPiece Reconstruction', () => {
   it('should merge WordPiece subwords correctly', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY
-        0.1, 0.1, 3.0,  // I-KEY
+        3.0, 0.1, 0.1,  // B-KEY
+        0.1, 3.0, 0.1,  // I-KEY
       ]),
       shape: [1, 2, 3],
     };
@@ -97,10 +97,10 @@ describe('WordPiece Reconstruction', () => {
   it('should handle mixed words and subwords', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY: "natural"
-        0.1, 0.1, 3.0,  // I-KEY: "language"
-        0.1, 0.1, 3.0,  // I-KEY: "process"
-        0.1, 0.1, 3.0,  // I-KEY: "##ing"
+        3.0, 0.1, 0.1,  // B-KEY: "natural"
+        0.1, 3.0, 0.1,  // I-KEY: "language"
+        0.1, 3.0, 0.1,  // I-KEY: "process"
+        0.1, 3.0, 0.1,  // I-KEY: "##ing"
       ]),
       shape: [1, 4, 3],
     };
@@ -122,7 +122,7 @@ describe('WordPiece Reconstruction', () => {
 
   it('should handle single token', () => {
     const output: InferenceOutput = {
-      logits: new Float32Array([0.1, 3.0, 0.1]),
+      logits: new Float32Array([3.0, 0.1, 0.1]),
       shape: [1, 1, 3],
     };
 
@@ -143,7 +143,7 @@ describe('WordPiece Reconstruction', () => {
 
   it('should handle token starting with ## as first token', () => {
     const output: InferenceOutput = {
-      logits: new Float32Array([0.1, 3.0, 0.1]),
+      logits: new Float32Array([3.0, 0.1, 0.1]),
       shape: [1, 1, 3],
     };
 
@@ -171,9 +171,9 @@ describe('BIO Span Extraction', () => {
   it('should extract single keyword span (B-KEY only)', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        3.0, 0.1, 0.1,  // O
-        0.1, 3.0, 0.1,  // B-KEY
-        3.0, 0.1, 0.1,  // O
+        0.1, 0.1, 3.0,  // O
+        3.0, 0.1, 0.1,  // B-KEY
+        0.1, 0.1, 3.0,  // O
       ]),
       shape: [1, 3, 3],
     };
@@ -198,9 +198,9 @@ describe('BIO Span Extraction', () => {
   it('should extract multi-token keyword span (B-KEY + I-KEY)', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY
-        0.1, 0.1, 3.0,  // I-KEY
-        3.0, 0.1, 0.1,  // O
+        3.0, 0.1, 0.1,  // B-KEY
+        0.1, 3.0, 0.1,  // I-KEY
+        0.1, 0.1, 3.0,  // O
       ]),
       shape: [1, 3, 3],
     };
@@ -225,10 +225,10 @@ describe('BIO Span Extraction', () => {
   it('should extract multiple separate keyword spans', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY: machine
-        3.0, 0.1, 0.1,  // O: and
-        0.1, 3.0, 0.1,  // B-KEY: deep
-        0.1, 0.1, 3.0,  // I-KEY: learning
+        3.0, 0.1, 0.1,  // B-KEY: machine
+        0.1, 0.1, 3.0,  // O: and
+        3.0, 0.1, 0.1,  // B-KEY: deep
+        0.1, 3.0, 0.1,  // I-KEY: learning
       ]),
       shape: [1, 4, 3],
     };
@@ -252,9 +252,9 @@ describe('BIO Span Extraction', () => {
   it('should ignore I-KEY without preceding B-KEY (orphaned I-KEY)', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        3.0, 0.1, 0.1,  // O
-        0.1, 0.1, 3.0,  // I-KEY (orphaned)
-        3.0, 0.1, 0.1,  // O
+        0.1, 0.1, 3.0,  // O
+        0.1, 3.0, 0.1,  // I-KEY (orphaned)
+        0.1, 0.1, 3.0,  // O
       ]),
       shape: [1, 3, 3],
     };
@@ -277,10 +277,10 @@ describe('BIO Span Extraction', () => {
   it('should handle consecutive keyword spans (B-KEY after I-KEY)', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY: machine
-        0.1, 0.1, 3.0,  // I-KEY: learning
-        0.1, 3.0, 0.1,  // B-KEY: deep (new span)
-        0.1, 0.1, 3.0,  // I-KEY: neural
+        3.0, 0.1, 0.1,  // B-KEY: machine
+        0.1, 3.0, 0.1,  // I-KEY: learning
+        3.0, 0.1, 0.1,  // B-KEY: deep (new span)
+        0.1, 3.0, 0.1,  // I-KEY: neural
       ]),
       shape: [1, 4, 3],
     };
@@ -310,10 +310,10 @@ describe('Filtering', () => {
   it('should filter keywords by minimum length', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY: "machine"
-        0.1, 0.1, 3.0,  // I-KEY: "learning"
-        3.0, 0.1, 0.1,  // O
-        0.1, 3.0, 0.1,  // B-KEY: "ai"
+        3.0, 0.1, 0.1,  // B-KEY: "machine"
+        0.1, 3.0, 0.1,  // I-KEY: "learning"
+        0.1, 0.1, 3.0,  // O
+        3.0, 0.1, 0.1,  // B-KEY: "ai"
       ]),
       shape: [1, 4, 3],
     };
@@ -337,10 +337,10 @@ describe('Filtering', () => {
   it('should filter stopwords', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY: "machine"
-        0.1, 0.1, 3.0,  // I-KEY: "learning"
-        3.0, 0.1, 0.1,  // O
-        0.1, 3.0, 0.1,  // B-KEY: "the"
+        3.0, 0.1, 0.1,  // B-KEY: "machine"
+        0.1, 3.0, 0.1,  // I-KEY: "learning"
+        0.1, 0.1, 3.0,  // O
+        3.0, 0.1, 0.1,  // B-KEY: "the"
       ]),
       shape: [1, 4, 3],
     };
@@ -394,11 +394,11 @@ describe('Filtering', () => {
   it('should deduplicate case-insensitive keywords and keep highest confidence', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.5, 0.1,  // B-KEY: "Machine" (high confidence)
-        0.1, 0.1, 3.5,  // I-KEY: "Learning"
-        3.0, 0.1, 0.1,  // O
-        0.1, 3.0, 0.1,  // B-KEY: "machine" (lower confidence)
-        0.1, 0.1, 3.0,  // I-KEY: "learning"
+        3.5, 0.1, 0.1,  // B-KEY: "Machine" (high confidence)
+        0.1, 3.5, 0.1,  // I-KEY: "Learning"
+        0.1, 0.1, 3.0,  // O
+        3.0, 0.1, 0.1,  // B-KEY: "machine" (lower confidence)
+        0.1, 3.0, 0.1,  // I-KEY: "learning"
       ]),
       shape: [1, 5, 3],
     };
@@ -424,9 +424,9 @@ describe('Filtering', () => {
   it('should deduplicate single-word keywords case-insensitively', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.5, 0.1,  // B-KEY: "Machine" (higher confidence)
-        3.0, 0.1, 0.1,  // O
-        0.1, 3.0, 0.1,  // B-KEY: "machine" (lower confidence)
+        3.5, 0.1, 0.1,  // B-KEY: "Machine" (higher confidence)
+        0.1, 0.1, 3.0,  // O
+        3.0, 0.1, 0.1,  // B-KEY: "machine" (lower confidence)
       ]),
       shape: [1, 3, 3],
     };
@@ -458,17 +458,17 @@ describe('extractKeywords() - Integration', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
         // [CLS]
-        3.0, 0.1, 0.1,
+        0.1, 0.1, 3.0,
         // "the" - O
-        3.0, 0.1, 0.1,
+        0.1, 0.1, 3.0,
         // "machine" - B-KEY
-        0.1, 3.5, 0.1,
+        3.5, 0.1, 0.1,
         // "learning" - I-KEY
-        0.1, 0.1, 3.5,
+        0.1, 3.5, 0.1,
         // "is" - O
-        3.0, 0.1, 0.1,
+        0.1, 0.1, 3.0,
         // [SEP]
-        3.0, 0.1, 0.1,
+        0.1, 0.1, 3.0,
       ]),
       shape: [1, 6, 3],
     };
@@ -490,9 +490,9 @@ describe('extractKeywords() - Integration', () => {
   it('should provide comprehensive metadata', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
+        0.1, 0.1, 3.0,
         3.0, 0.1, 0.1,
-        0.1, 3.0, 0.1,
-        3.0, 0.1, 0.1,
+        0.1, 0.1, 3.0,
       ]),
       shape: [1, 3, 3],
     };
@@ -514,12 +514,12 @@ describe('extractKeywords() - Integration', () => {
   it('should apply all filters in correct order', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY: "machine"
-        0.1, 0.1, 3.0,  // I-KEY: "learning"
-        3.0, 0.1, 0.1,  // O
-        0.1, 3.0, 0.1,  // B-KEY: "ai"
-        3.0, 0.1, 0.1,  // O
-        0.1, 3.0, 0.1,  // B-KEY: "the"
+        3.0, 0.1, 0.1,  // B-KEY: "machine"
+        0.1, 3.0, 0.1,  // I-KEY: "learning"
+        0.1, 0.1, 3.0,  // O
+        3.0, 0.1, 0.1,  // B-KEY: "ai"
+        0.1, 0.1, 3.0,  // O
+        3.0, 0.1, 0.1,  // B-KEY: "the"
       ]),
       shape: [1, 6, 3],
     };
@@ -552,9 +552,9 @@ describe('extractKeywords() - Edge Cases', () => {
   it('should handle empty predictions (all O labels)', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        3.0, 0.1, 0.1,  // All O
-        3.0, 0.1, 0.1,
-        3.0, 0.1, 0.1,
+        0.1, 0.1, 3.0,  // All O
+        0.1, 0.1, 3.0,
+        0.1, 0.1, 3.0,
       ]),
       shape: [1, 3, 3],
     };
@@ -574,8 +574,8 @@ describe('extractKeywords() - Edge Cases', () => {
   it('should handle all special tokens', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY (but will be filtered)
-        0.1, 3.0, 0.1,  // B-KEY (but will be filtered)
+        3.0, 0.1, 0.1,  // B-KEY (but will be filtered)
+        3.0, 0.1, 0.1,  // B-KEY (but will be filtered)
       ]),
       shape: [1, 2, 3],
     };
@@ -594,9 +594,9 @@ describe('extractKeywords() - Edge Cases', () => {
   it('should handle single-token keywords', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        3.0, 0.1, 0.1,  // [CLS] - O
-        0.1, 3.0, 0.1,  // "ai" - B-KEY
-        3.0, 0.1, 0.1,  // [SEP] - O
+        0.1, 0.1, 3.0,  // [CLS] - O
+        3.0, 0.1, 0.1,  // "ai" - B-KEY
+        0.1, 0.1, 3.0,  // [SEP] - O
       ]),
       shape: [1, 3, 3],
     };
@@ -621,9 +621,9 @@ describe('extractKeywords() - Edge Cases', () => {
   it('should skip padding tokens', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        0.1, 3.0, 0.1,  // B-KEY: "machine"
-        0.1, 3.0, 0.1,  // B-KEY: "[PAD]" (but attention_mask=0)
-        0.1, 3.0, 0.1,  // B-KEY: "[PAD]" (but attention_mask=0)
+        3.0, 0.1, 0.1,  // B-KEY: "machine"
+        3.0, 0.1, 0.1,  // B-KEY: "[PAD]" (but attention_mask=0)
+        3.0, 0.1, 0.1,  // B-KEY: "[PAD]" (but attention_mask=0)
       ]),
       shape: [1, 3, 3],
     };
@@ -648,9 +648,9 @@ describe('extractKeywords() - Edge Cases', () => {
   it('should handle keyword at sequence end', () => {
     const output: InferenceOutput = {
       logits: new Float32Array([
-        3.0, 0.1, 0.1,  // O: "the"
-        0.1, 3.0, 0.1,  // B-KEY: "machine"
-        0.1, 0.1, 3.0,  // I-KEY: "learning"
+        0.1, 0.1, 3.0,  // O: "the"
+        3.0, 0.1, 0.1,  // B-KEY: "machine"
+        0.1, 3.0, 0.1,  // I-KEY: "learning"
       ]),
       shape: [1, 3, 3],
     };

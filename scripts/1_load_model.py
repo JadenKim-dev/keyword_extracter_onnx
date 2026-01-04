@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
-Script 1: Load and Inspect Base DistilBERT NER Model (Readable Output)
+Script 1: Load Pre-trained Keyword Extraction Model
+
+Loads ml6team/keyphrase-extraction-distilbert-inspec - a DistilBERT model
+pre-trained for keyphrase extraction using BIO tagging.
 
 Usage:
-    python scripts/1_load_model.py
-    python scripts/1_load_model.py --verbose
-    python scripts/1_load_model.py --no-infer
+    uv run python -m scripts.1_load_model
+    uv run python -m scripts.1_load_model --verbose
+    uv run python -m scripts.1_load_model --no-infer
 """
 
 import os
@@ -22,19 +25,26 @@ from scripts.utils.display import (
 )
 
 
-MODEL_NAME = "dslim/distilbert-NER"
-CACHE_DIR = "./models/pytorch/base_ner"
+MODEL_NAME = "ml6team/keyphrase-extraction-distilbert-inspec"
+CACHE_DIR = "./models/pytorch/keyword_model"
 
 
 def load_and_inspect(*, verbose: bool = False, run_infer: bool = True):
-    os.makedirs(CACHE_DIR, exist_ok=True)
-
     print(f"📦 Loading model: {MODEL_NAME}")
 
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, cache_dir=CACHE_DIR)
-    model = AutoModelForTokenClassification.from_pretrained(MODEL_NAME, cache_dir=CACHE_DIR)
+    # Load model from HuggingFace (will cache temporarily)
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    model = AutoModelForTokenClassification.from_pretrained(MODEL_NAME)
 
     config = model.config
+
+    # Validate label mapping for ml6team model
+    expected_labels = {0: "B-KEY", 1: "I-KEY", 2: "O"}
+    if config.id2label != expected_labels:
+        raise ValueError(
+            f"Unexpected label mapping: {config.id2label}. "
+            f"Expected {expected_labels} for ml6team keyphrase extraction model."
+        )
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -96,9 +106,15 @@ def load_and_inspect(*, verbose: bool = False, run_infer: bool = True):
             max_items=12,
         )
 
+    # Save model to target directory
+    print(f"\n💾 Saving model to: {os.path.abspath(CACHE_DIR)}")
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    model.save_pretrained(CACHE_DIR)
+    tokenizer.save_pretrained(CACHE_DIR)
+
     # Final short summary
-    print(f"\n✓ Cached at: {os.path.abspath(CACHE_DIR)}")
-    print("✓ Ready for adaptation to keyword extraction (next script)")
+    print(f"✓ Model saved to: {os.path.abspath(CACHE_DIR)}")
+    print("✓ Pre-trained model ready for ONNX conversion (next script)")
 
     return tokenizer, model
 
