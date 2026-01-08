@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,10 @@ export default function KeywordExtractorPage() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState<boolean>(false)
 
+  // Refs for debouncing
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isLoadingRef = useRef<boolean>(false)
+
   // Initialize models on mount
   useEffect(() => {
     const initializeModels = async () => {
@@ -36,11 +40,24 @@ export default function KeywordExtractorPage() {
   }, [])
 
   // Extract keywords handler
-  const handleExtract = useCallback(async () => {
+  const handleExtract = useCallback(async (triggerSource: 'manual' | 'auto' = 'manual') => {
+    // Prevent concurrent executions
+    if (isLoadingRef.current) {
+      return
+    }
+
     // Validate input
     if (!inputText.trim()) {
-      setError('Please enter text to extract keywords.')
-      return
+      if (triggerSource === 'auto') {
+        // Auto-trigger on empty input: clear results silently
+        setKeywords([])
+        setError(null)
+        return
+      } else {
+        // Manual trigger on empty input: show error
+        setError('Please enter text to extract keywords.')
+        return
+      }
     }
 
     if (!isModelReady) {
@@ -48,6 +65,7 @@ export default function KeywordExtractorPage() {
       return
     }
 
+    isLoadingRef.current = true
     setIsLoading(true)
     setError(null)
 
@@ -68,14 +86,53 @@ export default function KeywordExtractorPage() {
         removeStopwords: true,
       })
 
-      setKeywords(result.keywords)
+      // Only update if still loading (not cancelled by new input)
+      if (isLoadingRef.current) {
+        setKeywords(result.keywords)
+      }
     } catch (err) {
-      setError('Keyword extraction failed. Please try again.')
-      console.error('Extraction error:', err)
+      // Only update error state if still loading
+      if (isLoadingRef.current) {
+        setError('Keyword extraction failed. Please try again.')
+        console.error('Extraction error:', err)
+      }
     } finally {
+      isLoadingRef.current = false
       setIsLoading(false)
     }
   }, [inputText, isModelReady])
+
+  // Auto-extraction with debouncing
+  useEffect(() => {
+    // Skip if model not ready or currently loading
+    if (!isModelReady || isLoading) {
+      return
+    }
+
+    // Handle empty input - clear results immediately (no debounce)
+    if (!inputText.trim()) {
+      setKeywords([])
+      return
+    }
+
+    // Clear existing debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    // Set new debounce timer (500ms)
+    debounceTimerRef.current = setTimeout(() => {
+      handleExtract('auto')
+    }, 500)
+
+    // Cleanup on unmount or dependency change
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputText, isModelReady, handleExtract])
 
   // Copy keywords to clipboard
   const copyKeywords = useCallback(() => {
@@ -138,14 +195,22 @@ export default function KeywordExtractorPage() {
             rows={8}
             className="resize-none"
           />
-          <p className="text-xs text-muted-foreground">
-            {inputText.length} characters
-          </p>
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-muted-foreground">
+              {inputText.length} characters
+            </p>
+            {isLoading && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>Extracting...</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Extract Button */}
         <Button
-          onClick={handleExtract}
+          onClick={() => handleExtract('manual')}
           disabled={!isModelReady || isLoading || !inputText.trim()}
           size="lg"
           className="w-full sm:w-auto"
